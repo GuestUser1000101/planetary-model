@@ -77,8 +77,10 @@ def shortNumber(n):
         sign = 1
 
     num = abs(n)
-    
-    if num >= 1000 and num < 1000000:
+
+    if num < 1000:
+        return str(num)
+    elif num >= 1000 and num < 1000000:
         return str(sign * roundPlace(num/1000, 10)) + 'K'
     elif num >= 1000000 and num < 1000000000:
         return str(sign * roundPlace(num/1000000, 10)) + 'M'
@@ -105,6 +107,30 @@ def randsign(weight = 50):
 #Rotates a list
 def rotateList(l, n):
     return l[n:] + l[:n]
+
+#Generates a random name
+def randomName():
+    consonants = ['', 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z', 'st', 'sh', 'ch', 'sc', 'th']
+    starters = ['sr', 'sl', 'cl', 'pl', 'tr', 'dr', 'cr']
+    starters.extend(consonants)
+    vowels = ['a', 'e', 'i', 'o', 'u']
+
+    name = starters[random.randint(0, len(starters) - 1)] + vowels[random.randint(0, len(vowels) - 1)]
+
+    if random.randint(0, 1) == 0:
+        name += consonants[random.randint(0, len(consonants) - 1)]
+    else:
+        name += starters[random.randint(0, len(starters) - 1)] + vowels[random.randint(0, len(vowels) - 1)]
+        if random.randint(0, 1) == 0:
+            name += consonants[random.randint(0, len(consonants) - 1)]
+        else:
+            name += starters[random.randint(0, len(starters) - 1)] + vowels[random.randint(0, len(vowels) - 1)]
+            if random.randint(0, 1) == 0:
+                name += consonants[random.randint(0, len(consonants) - 1)]
+            
+    name = name[0].upper() + name[1:]
+    
+    return name    
 
 #Imports files based on path, returns single file or a list of files
 def import_file(obj, amount = 1, path='assets/', filetype = 'png'):
@@ -137,6 +163,7 @@ class Object():
         self.defaultColor = defaultColor
         self.color = (255, 255, 255)
         self.code = Object.codeIterator
+        self.name = randomName()
         Object.codeIterator += 1
     def update(self):
         self.v += self.a * speed
@@ -192,11 +219,9 @@ def draw():
 
     if pState == 1:
         paused = not paused
-        print(paused)
 
     if oState == 1:
         numberState += 1
-        print(numberState)
         if numberState == 3:
             numberState = 0
 
@@ -250,19 +275,34 @@ def draw():
 
     mousePos = pygame.mouse.get_pos()
     relativeMousePos = (roundPlace((mousePos[0] - width/2) / scale - offsetX + followX, 1000), roundPlace((mousePos[1] - height/2) / scale - offsetY + followY, 1000))
+    followingPos = (roundPlace(Object.objects[following].x, 1000), roundPlace(Object.objects[following].y, 1000))
 
     if numberState == 0:
         formattedMousePos = relativeMousePos
+        formattedFollowingPos = followingPos
     if numberState == 1:
         formattedMousePos = (shortNumber(relativeMousePos[0]), shortNumber(relativeMousePos[1]))
+        formattedFollowingPos = (shortNumber(followingPos[0]), shortNumber(followingPos[1]))
     elif numberState == 2:
         formattedMousePos = (np.format_float_scientific(relativeMousePos[0], unique=False, precision=3), np.format_float_scientific(relativeMousePos[1], unique=False, precision=3))
+        formattedFollowingPos = (np.format_float_scientific(followingPos[0], unique=False, precision=3), np.format_float_scientific(followingPos[1], unique=False, precision=3))
 
-    #print(relativeMousePos)
     Text.texts[1].message = str(formattedMousePos[0]) + ', ' + str(formattedMousePos[1])
     Text.texts[1].center = (mousePos[0], mousePos[1] + 20)
 
+    Text.texts[2].message = 'Position: ' + str(formattedFollowingPos[0]) + ', ' + str(formattedFollowingPos[1])
+    Text.texts[2].center = (Text.texts[2].rect.width/2 + 10, height - 20)
 
+    Text.texts[3].message = 'Tracking: ' + Object.objects[following].name
+    Text.texts[3].center = (Text.texts[3].rect.width/2 + 10, height - 50)
+
+    Text.texts[4].message = 'Velocity: ' + str(roundPlace(Object.objects[following].v[0], 1000)) + ', ' + str(roundPlace(Object.objects[following].v[1], 1000))
+    Text.texts[4].center = (Text.texts[2].rect.width + Text.texts[4].rect.width/2 + 20, height - 20)
+
+    Text.texts[2].hidden = not bool(follow)
+    Text.texts[3].hidden = not bool(follow)
+    Text.texts[4].hidden = not bool(follow)
+    
     closest = distance(Object.objects[0].x, Object.objects[0].y, relativeMousePos[0], relativeMousePos[1])
     closestIndex = 0
     for i in range(1, len(Object.objects)):
@@ -402,8 +442,12 @@ for i in range(random.randint(10, 20)):
             defaultColor = (random.randint(80, 150), random.randint(50, 120), random.randint(50, 120))
             ))
 
-Text.texts.append(Text(10, 20, '')) #speed
-Text.texts.append(Text(100, 100, '')) #mouse coords
+Text.texts.append(Text(30, 20, '')) #speed
+Text.texts.append(Text(100, 100, '')) #mouse coordss
+#selected objects
+Text.texts.append(Text(30, height - 50, '')) #coords
+Text.texts.append(Text(30, height - 50, '')) #name
+Text.texts.append(Text(30, height - 50, '')) #velocity
 
 #main loop
 while running:
